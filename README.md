@@ -10,7 +10,7 @@ Leader : Tessa van der Hammen,
 
 Other project collaborators (to be filled in) 
 
-DIASPARA : Estibaliz Diaz, Cédric Briand, Hilaire Drouineau, Ciara O’Leary, Rob Van.Gemert
+DIASPARA : Estibaliz Diaz, Cédric Briand, Hilaire Drouineau, Ciara O’Leary, Rob Van.Gemert, Jani Helminen
 
 Jan Dag Pohlmann, Derek Evans, Caroline Durif, Jaspn Godfrey .... (to be filled in).
 
