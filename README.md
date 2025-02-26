@@ -1,4 +1,4 @@
-# glass_eel
+# Spatio temporal trends in glass eel size
 Repository for glass eel 
 
 Optimizing the wgeel database for a new datacall for size
