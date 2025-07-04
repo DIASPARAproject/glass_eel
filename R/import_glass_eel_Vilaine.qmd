@@ -1,0 +1,187 @@
+---
+title: "Importing data call call glass eel length"
+subtitle: "DIASPARA WP2 working document"
+author: "Briand Cédric, Tessa Van Der Hamment
+date: last-modified
+date-format: "DD-MM-YYYY"
+description: "Creation of metric db, version = build"
+title-block-banner: "images/diaspara_bandeau.png"
+title-block-banner-color: "white"
+format:
+ html:
+  self-contained: true
+  theme: styles.scss
+  smooth-scroll: true
+  fontcolor: black
+  toc: true
+  toc-location: left
+  toc-title: Summary
+  toc-depth: 3
+execute: 
+ keep-md: true
+filters:
+  - include-code-files
+reference-location: document
+bibliography: diaspara.bib
+include-after-body: "footer.html"
+---
+
+
+
+```{r init}
+#| echo: FALSE
+#| warning: FALSE
+#| message: FALSE
+#| results: 'hide'
+
+#if (!grepl("montepomi", getwd())) {
+if(Sys.info()[["user"]] == 'joliviero'){
+setwd("D:/workspace/DIASPARA_WP3_migdb/R")
+datawd <- "D:/DIASPARA/wgbast"
+} else if (Sys.info()[["user"]] == 'cedric.briand'){
+setwd("C:/workspace/DIASPARA_WP3_migdb/R")
+datawd <- "C:/Users/cedric.briand/OneDrive - EPTB Vilaine/Projets/DIASPARA/wgbast"
+}
+source("utilities/load_library.R")
+load_library("tidyverse")
+load_library("knitr")
+load_library("kableExtra")
+load_library("icesVocab")
+load_library("readxl")
+load_library("janitor")
+load_library("skimr")
+load_library("RPostgres")
+load_library("yaml")
+load_library("DBI")
+load_library("ggplot2")
+load_library("sf")
+load_library("janitor") # clean_names
+load_library("uuid")
+load_library("stacomiR")
+load_library("readxl")
+load_library("writexl")
+cred <- read_yaml("../credentials.yml")
+con_diaspara <- dbConnect(Postgres(), 
+                           dbname = cred$dbnamediaspara,
+                           host = cred$host,
+                           port = cred$port,
+                           user = cred$userdiaspara,
+                           password = cred$passworddiaspara)
+con_diaspara_admin <- dbConnect(Postgres(), 
+                           dbname = cred$dbnamediaspara,
+                           host = cred$host,
+                           port = cred$port,
+                           user = cred$usersalmo,
+                           password = cred$passwordsalmo)
+con_salmoglob <- dbConnect(Postgres(), 
+                           dbname = cred$dbnamesalmo,
+                           host = cred$host,
+                           port = cred$port,
+                           user = cred$usersalmo,
+                           password = cred$passwordsalmo)
+con_wgeel_distant <- dbConnect(Postgres(), 
+                           dbname = cred$dbnamedistant,
+                           host = cred$hostdistant,
+                           port = cred$port,
+                           user = cred$userdistant,
+                           password = cred$passworddistant)
+con_wgeel_local <- dbConnect(Postgres(), 
+                           dbname = "wgeel",
+                           host = '127.0.0.1',
+                           port = cred$port,
+                           user = cred$userdistant,
+                           password = cred$passwordsalmo)
+if (exists("userdistant") & exists("passworddistant") & exists("hostdistant")) {
+	if( !exists("pois"))  pois <- mainpass
+	host <- decrypt_string(hostdistant,pois)
+	user <- decrypt_string(userdistant,pois)
+	password<- decrypt_string(passworddistant,pois)
+} else {
+  load_library('getPass')
+	host <- getPass(msg="host")
+	user <- getPass(msg="user")
+	password <- getPass(msg="password")
+}
+
+options(list(
+				stacomiR.dbname = "bd_contmig_nat_iav",
+				stacomiR.host = host,
+				stacomiR.port = "5432",
+				stacomiR.user = user,
+				stacomiR.password = password,
+				stacomiR.printqueries =FALSE
+		))
+#printqueries mettre TRUE pour voir les requetes
+stacomi(TRUE,sch="iav", datawd=datawd)
+
+
+ write_xlsx(as.data.frame(list_comp_individual_metrics$new), file)
+```
+
+
+```{r }
+#| label: TRUE
+#| echo: TRUE
+#| warning: FALSE
+#| message: FALSE
+
+vilG <- dbGetQuery(con_wgeel_distant, "SELECT * FROM datawg.t_series_ser WHERE ser_nameshort = 'VilG'")
+
+#clipr::write_clip(vilG)
+#LOADING TRAP DATA ------------------------------------
+
+con <- dbConnect(Postgres(), 		
+    dbname=getOption("stacomiR.dbname"), 		
+    host=getOption("stacomiR.host"),
+    port=getOption("stacomiR.port"), 		
+    user= getOption("stacomiR.user"), 		
+    password= getOption("stacomiR.password"))
+tps <- dbGetQuery(con, "select * from iav.civelle_taille_poids_stade")
+#colnames(tps)
+tps$ser_nameshort="VilTG"
+tps <- tps[,-match("ope_operateur",colnames(tps))]
+tps <- tps %>% rename("fi_id_cou"="lot_identifiant",
+                "fi_date"="ope_date_debut",
+                "lengthmm" = taille,
+                "weightg" = poids,
+                "ge_stage" = stade
+             )
+#LOADING ESTUARINE DATA ----------------------------------------
+
+con <- dbConnect(Postgres(), 		
+    dbname="mortciv", 		
+    host=getOption("stacomiR.host"),
+    port=getOption("stacomiR.port"), 		
+    user= getOption("stacomiR.user"), 		
+    password= getOption("stacomiR.password"))
+
+tps2 <- dbGetQuery(con, "select * from vue_ope_lot_taillepoidsstade")
+tps2 <- tps2[, c("ope_identifiant","lot_identifiant","datedebutpeche","taille","poids","stade")]
+tps2$ser_nameshort="VilG"
+colnames(tps2) <- colnames(tps)
+vil <- rbind(tps,tps2)# row bind = concatenate
+save(vil,file=file.path("data","vil.Rdata"))
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# START HERE WITHOUT CONNEXION TO THE DATABASE
+# load(file=str_c(datawdy,"vil.Rdata"))
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+# VILAINE (data post treatment) ------------------------------
+
+# this will change names so that they correspond to yours
+
+vil$fi_date <- as.Date(vil$fi_date)
+vil$fi_year <- lubridate::year(vil$fi_date)
+vil <- vil %>% select(fi_id_cou,ser_nameshort,fi_date,fi_year,ge_stage,lengthmm,	weightg) %>% mutate(fi_comment = NA)
+)
+write_xlsx(x=list("new_individual_metrics"=vil), path = file.path("data,vil.xlsx")
+# I paste it from there to excel
+dbDisconnect(con)
+
+
+
+# p + geom_point(size=0.5) + 
+#     scale_x_date(name="date")
+
+
+@
