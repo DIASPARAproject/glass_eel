@@ -148,7 +148,6 @@ Make a map.
 ```{r map}
 
 load(file = file.path(datawd, "dat.Rdata"))
-dir.exists(path)
 df <- read.csv(file.path(datawd, "2025_lon_lat.csv", sep=""), sep=";")
 # some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
 
