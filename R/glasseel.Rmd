@@ -40,8 +40,9 @@ DO   <- read.csv(file.path(datawd, "NL_DenOever.csv", sep=""), sep=";")
 DO   <- DO[DO$lengthmm < 90,]
 DO   <- DO[DO$ser_nameshort %in% 'RhDOG',]
 # remove one sample in july in 1971 -> probably error -> check date!
-DO <- DO[!(DO$fi_date2 %in% '1971-07-21'),]
 DO$fi_date2 <- as.Date(DO$fi_date, "%d-%m-%Y")
+DO <- DO[!(DO$fi_date2 %in% '1971-07-21'),]
+
   any(is.na(DO$fi_date2))
 
 
@@ -61,7 +62,7 @@ SH$fi_date2 <- as.Date(SH$fi_date, "%d-%m-%Y")
 ER   <- read.csv(file.path(datawd, "NI_Erne_updated.csv", sep=""), sep=";")
 ER$day <- gsub(c('[thAprilAugustMacFebayMayndJy ]'), '',ER$fi_date)
 nrow(ER[ER$day %in% '',]) # 484 from 8064
-ER$day[ER$day %in% ''] <- 15
+ER$day[ER$day %in% ''] <- 15 # decided the day would be 15 if missing
 ER$fi_year <- str_sub(ER$fi_year, -4,-1)
 ER$fi_date2 <- as.Date(paste(as.character(ER$fi_year),"-", ER$month,"-", ER$day, sep=''))
 any(is.na(ER$fi_date2))
@@ -138,7 +139,7 @@ aggregate(list(number_years=dat2$nameshort), list(nameshort=dat2$nameshort), len
 
 table(dat$ser_nameshort)
 
-save(dat, file = file.path(path, "dat.Rdata"))
+save(dat, file = file.path(datawd, "dat.Rdata"))
 
 ```
 
@@ -146,7 +147,7 @@ Make a map.
 
 ```{r map}
 
-load(file = file.path(getwd(),path, "dat.Rdata"))
+load(file = file.path(datawd, "dat.Rdata"))
 dir.exists(path)
 df <- read.csv(file.path(datawd, "2025_lon_lat.csv", sep=""), sep=";")
 # some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
@@ -186,68 +187,71 @@ We have asked for pigmentation stage, but there are a lot of NA's..
 # 10	unknown	glasseels, but pigmentation stage is unknown
 
 
+load(file = file.path(datawd, "dat.Rdata"))
+
 
 dat <- dat %>% 
   mutate(
     ge_stage_corr = case_when(
-    ge_stage_corr == "VA" ~ "1",
-    ge_stage_corr == "V A" ~ "1",
-    ge_stage_corr == "VB" ~ "2",
-    ge_stage_corr == "V B 1" ~ "2",
-    ge_stage_corr == "V B 2" ~ "2",
-    ge_stage_corr == "VI B I" ~ "2",
-    ge_stage_corr == "VIB" ~ "2",
-    ge_stage_corr == "VI A 0" ~ "3",
-    ge_stage_corr == "VIA0" ~ "3",
-    ge_stage_corr == "VI A 1" ~ "4",
-    ge_stage_corr == "VIA1" ~ "4",
-    ge_stage_corr == "VI A I" ~ "4",
-    ge_stage_corr == "VI A I " ~ "4",
-    ge_stage_corr == "VIA2" ~ "5",
-    ge_stage_corr == "VI A II 1" ~ "5",
-    ge_stage_corr == "VI A II 2" ~ "5",
-    ge_stage_corr == "VI A II 3" ~ "5",
-    ge_stage_corr == "VI A II 4" ~ "5",
-    ge_stage_corr == "VII" ~ "5",
-    ge_stage_corr == "VIA3" ~ "6",
-    ge_stage_corr == "VI A III 1" ~ "6",
-    ge_stage_corr == "VI A III 2" ~ "6",
-    ge_stage_corr == "VI A III 3" ~ "6",
-    ge_stage_corr == "VIA4" ~ "7",
-    ge_stage_corr == "VI A IV 1" ~ "7",
-    ge_stage_corr == "VI A IV 2" ~ "7",
-    ge_stage_corr == "VI A IV 3" ~ "7",
-    ge_stage_corr == "VI A IV 4" ~ "7",
-    ge_stage_corr == "DEFO GLASS EEL" ~ "10",
-    ge_stage_corr == "LIGHT PIG DEFO g EEL" ~ "10",
-    ge_stage_corr == "V LIGHT PIG" ~ "10",
-    ge_stage_corr == "check age G?" ~ "10",
-    ge_stage_corr == "LIGHT PIG" ~ "10",
-    ge_stage_corr == "LIGHT PIGMENT" ~ "10",
-    ge_stage_corr == "DARK PIG" ~ "10",
-    ge_stage_corr == "" ~ "NA",
-    ge_stage_corr == " " ~ "NA",
+    ge_stage == "VA" ~ "1",
+    ge_stage == "V A" ~ "1",
+    ge_stage == "VB" ~ "2",
+    ge_stage == "V B 1" ~ "2",
+    ge_stage == "V B 2" ~ "2",
+    ge_stage == "VI B I" ~ "2",
+    ge_stage == "VIB" ~ "2",
+    ge_stage == "VI A 0" ~ "3",
+    ge_stage == "VIA0" ~ "3",
+    ge_stage == "VI A 1" ~ "4",
+    ge_stage == "VIA1" ~ "4",
+    ge_stage == "VI A I" ~ "4",
+    ge_stage == "VI A I " ~ "4",
+    ge_stage == "VIA2" ~ "5",
+    ge_stage == "VI A II 1" ~ "5",
+    ge_stage == "VI A II 2" ~ "5",
+    ge_stage == "VI A II 3" ~ "5",
+    ge_stage == "VI A II 4" ~ "5",
+    ge_stage == "VII" ~ "5",
+    ge_stage == "VIA3" ~ "6",
+    ge_stage == "VI A III 1" ~ "6",
+    ge_stage == "VI A III 2" ~ "6",
+    ge_stage == "VI A III 3" ~ "6",
+    ge_stage == "VIA4" ~ "7",
+    ge_stage == "VI A IV 1" ~ "7",
+    ge_stage == "VI A IV 2" ~ "7",
+    ge_stage == "VI A IV 3" ~ "7",
+    ge_stage == "VI A IV 4" ~ "7",
+    ge_stage == "DEFO GLASS EEL" ~ "10",
+    ge_stage == "LIGHT PIG DEFO g EEL" ~ "10",
+    ge_stage == "V LIGHT PIG" ~ "10",
+    ge_stage == "check age G?" ~ "10",
+    ge_stage == "LIGHT PIG" ~ "10",
+    ge_stage == "LIGHT PIGMENT" ~ "10",
+    ge_stage == "DARK PIG" ~ "10",
+    ge_stage == "" ~ "NA",
+    ge_stage == " " ~ "NA",
        
-    TRUE ~ ge_stage_corr 
+    TRUE ~ ge_stage 
     ))
+dat$ge_stage_corr[dat$ge_stage_corr=="NA"] <- NA
 dat$ge_stage_corr <- as.factor(dat$ge_stage_corr)
-levels(dat$ge_stage_corr)
-dat$ge_stage_corr = factor(dat$ge_stage_corr,levels(x)[c(4,5,1:3)])
+
+ma <- match(c("1","2","3","4","5","6","7","8","9","10"),levels(dat$ge_stage_corr))
+dat$ge_stage_corr = factor(dat$ge_stage_corr,levels(dat$ge_stage_corr)[ma])
 table(dat$ge_stage_corr, dat$ser_nameshort, useNA='always')
 
 ggplot(data=dat) + geom_point(aes(x=ge_stage_corr, y=lengthmm))+facet_wrap(~ser_nameshort)
 
-write.csv(dat, "S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv")
-dat   <- read.csv("C:\\Tessa\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
+save(file = file.path(datawd, "dat.Rdata"))
 
-write.csv(dat, "S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv")
+
 
 ```
 
 ## Plots
 
 ```{r pressure, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
-
+load(file = file.path(datawd, "dat.Rdata"))
 ggplot(dat)+
   geom_point(aes(x=lengthmm, y=weightg)) + facet_wrap (~ser_nameshort, scales='free')+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
