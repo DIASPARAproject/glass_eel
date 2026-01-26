@@ -18,8 +18,16 @@ library(ggpubr)
 library(stringr)
 library(ggmap)
 library(ggthemes)
+# full path to data
+datapath  <-"R/data/"
+if(Sys.info()[["user"]] == 'hamme0055'){
+  setwd("C:/Tessa/glass_eel/R")
+  datawd <- file.path(getwd(),datapath)
+} else if (Sys.info()[["user"]] == 'cedric.briand'){
+  setwd("C:/workspace/DIASPARA_glass_eel/R")
+  datawd <- "C:/Users/cedric.briand/OneDrive - EPTB Eaux&Vilaine/Projets/DIASPARA/wgbast"
+}
 
-path  <-"R/data/"
 ```
 
 ## 
@@ -139,7 +147,8 @@ Make a map.
 
 ```{r map}
 
-load(file = file.path(path, "dat.Rdata"))
+load(file = file.path(getwd(),path, "dat.Rdata"))
+dir.exists(path)
 df <- read.csv(paste(path, "2025_lon_lat.csv", sep=""), sep=";")
 # some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
 
