@@ -109,6 +109,8 @@ EA   <- read.csv(paste(path, "CA_Eastriver.csv", sep=""), sep=";")
   EA <- EA[!(EA$date %in% '27-01-1900'),]
   EA$ge_stage[is.na(EA$ge_stage)] <-''
   
+  save()
+  
 ```
 
 
@@ -129,13 +131,15 @@ aggregate(list(number_years=dat2$nameshort), list(nameshort=dat2$nameshort), len
 
 table(dat$ser_nameshort)
 
+save(dat, file = file.path(path, "dat.Rdata"))
+
 ```
 
 Make a map.
 
 ```{r map}
 
-
+load(file = file.path(path, "dat.Rdata"))
 df <- read.csv(paste(path, "2025_lon_lat.csv", sep=""), sep=";")
 # some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
 
