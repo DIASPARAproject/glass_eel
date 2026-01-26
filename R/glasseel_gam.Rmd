@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-This script analyses glass eel size from different locations in Europe. We do a seasonal gam. 
+This script analyses glass eel size from different locations in Europe. We do a seasonal gam.
+{>> this is a comment from Cédric >>}
 
 ```{r Process data, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
