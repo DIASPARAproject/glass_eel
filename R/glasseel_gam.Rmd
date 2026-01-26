@@ -21,7 +21,7 @@ library(ggplot2)
 
 # read in data
 #dat   <- read.csv("S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
-dat   <- read.csv("C:\\Tessa\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
+dat   <- read.csv("data\\dat_all_26_09_2025.csv", sep=",")
 
 don   <- dat
 
