@@ -1,0 +1,286 @@
+---
+title: "Glasseel"
+author: "Tessa van der Hammen"
+date: "2025-07-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+# set path and connect to database
+library(mgcv);
+library("RColorBrewer");
+library(tidyverse)
+library(patchwork)
+library(ggridges)
+library(gratia)
+library(ggpubr)
+library(stringr)
+
+path  <-"S://Public/Advisering aal/2024 EMFAF/Glasseel/datacall/data/"
+```
+
+## 
+
+```{r load data, echo=TRUE, message=FALSE, warning=FALSE}
+# Load data
+
+# DEN OEVER NETHERLANDS, 1 location
+DO   <- read.csv(paste(path, "NL_DenOever.csv", sep=""), sep=";")
+DO   <- DO[DO$lengthmm < 90,]
+DO   <- DO[DO$ser_nameshort %in% 'RhDOG',]
+# remove one sample in july in 1971 -> probably error -> check date!
+DO <- DO[!(DO$fi_date2 %in% '1971-07-21'),]
+DO$fi_date2 <- as.Date(DO$fi_date, "%d-%m-%Y")
+  any(is.na(DO$fi_date2))
+
+
+  
+# VILLAINE FRANCE, 1 fisheries and 1 fisheries independent
+VI   <- read.csv(paste(path, "FR_Villaine.csv", sep=""), sep=";")
+VI$fi_date2 <- as.Date(VI$fi_date)
+  any(is.na(VI$fi_date2))
+  
+# SHIELDAIG SCOTLAND, 1 location
+SH   <- read.csv(paste(path, "SC_Shieldaig.csv", sep=""), sep=";")
+SH$fi_date2 <- as.Date(SH$fi_date, "%d-%m-%Y")
+  any(is.na(SH$fi_date2))
+
+# BANN, ERNE, STRA, NORTHERN IRELAND
+# no day for many records. We use day 15 instead (or should we remove?)
+ER   <- read.csv(paste(path, "NI_Erne_updated.csv", sep=""), sep=";")
+ER$day <- gsub(c('[thAprilAugustMacFebayMayndJy ]'), '',ER$fi_date)
+nrow(ER[ER$day %in% '',]) # 484 from 8064
+ER$day[ER$day %in% ''] <- 15
+ER$fi_year <- str_sub(ER$fi_year, -4,-1)
+ER$fi_date2 <- as.Date(paste(as.character(ER$fi_year),"-", ER$month,"-", ER$day, sep=''))
+any(is.na(ER$fi_date2))
+
+# ORIA SPAIN, 1 location
+OR   <- read.csv(paste(path, "ES_Oria.csv", sep=""), sep=";")
+  OR$fi_date2 <- as.Date(OR$date, "%d-%m-%Y")
+  any(is.na(OR$fi_date2))
+  OR$fi_year <- str_sub(OR$date,-4,-1)
+  OR$lengthmm <- OR$size_cm*10 
+  OR$weightg <- OR$weight_g
+  OR$ser_nameshort <- OR$basin
+  OR$fi_comment <- OR$depth
+  OR$fi_id_cou <- NA
+ 
+# BURRISHOOLE, IRELAND, 1 location
+BU   <- read.csv(paste(path, "IRE_Burrishoole.csv", sep=""), sep=";")
+  BU$fi_date2 <- as.Date(BU$Date,"%d-%m-%Y")
+  BU$fi_year <- BU$Cohort.Year
+  BU$lengthmm <- BU$Length.cm*10
+  BU$weightg <- BU$Weight.gm
+  BU$ser_nameshort <- BU$Location
+  BU$fi_id_cou <- BU$Database.Code
+  BU$ge_stage <- BU$Pigment
+  BU$fi_comment <- BU$Lifestage
+  BU <- BU[BU$Lifestage %in% c('G'),]
+  BU <- BU[!(BU$ge_stage %in% c(' plus batch weight 41 eels  weight 20.74',
+                                'G or Y?',
+                                'check age G?')),]
+  
+
+# IRELAND  
+IR   <- read.csv(paste(path, "IRE_IFI.csv", sep=""), sep=";")
+  IR$fi_date2 <- as.Date(IR$fi_date, "%d-%m-%Y")
+  any(is.na(IR$fi_date2))
+  IR$fi_comment <- ""
+  IR <- IR[IR$fi_lfs_code %in% c('G')|is.na(IR$fi_lfs_code),] # remove yellow eel
+  
+  
+# AMERICAN EELS, EASTRIVER
+      # check dates... different formats in excel. now pragmatic soluation but not sure if it is correct. 
+EA   <- read.csv(paste(path, "CA_Eastriver.csv", sep=""), sep=";")
+  EA$fi_date2 <- as.Date(EA$date,"%d-%m-%Y")
+  EA$fi_date2[is.na(EA$fi_date2)] <- as.Date(EA$date[is.na(EA$fi_date2)],"%d/%m/%Y")
+  EA$fi_date2[is.na(EA$fi_date2)] <- format(as.Date(EA$date[is.na(EA$fi_date2)], "%m/%d/%y"), "20%y/%m/%d")
+  EA$fi_year <- EA$year
+  EA$lengthmm <- EA$length
+  EA$weightg <- EA$weight
+  EA$ser_nameshort <- 'East_River'
+  EA$fi_id_cou <- NA
+  EA$ge_stage <- EA$stage
+  EA$fi_comment <- NA
+  EA <- EA[!(EA$date %in% '27-01-1900'),]
+  EA$ge_stage[is.na(EA$ge_stage)] <-''
+  
+```
+
+
+```{r merge data, message=FALSE, warning=FALSE, include=FALSE}
+dat <- rbind(DO[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             VI[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             SH[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             ER[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             OR[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             EA[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             BU[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             IR[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")])
+dat <- dat[!(dat$ser_nameshort %in% ''),]
+
+
+dat2 <- aggregate(list(number=dat$ser_nameshort), list(nameshort=dat$ser_nameshort,year=dat$fi_year), length)
+aggregate(list(number_years=dat2$nameshort), list(nameshort=dat2$nameshort), length)
+
+table(dat$ser_nameshort)
+
+```
+
+Make a map.
+
+```{r map}
+library(ggmap)
+library(ggthemes)
+
+df <- read.csv(paste(path, "2025_lon_lat.csv", sep=""), sep=";")
+# some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
+
+world_map <- map_data("world", xlim=c(-10,5), ylim=c(40,57))
+
+#plot
+ggplot(world_map, aes(x = long, y = lat)) + 
+geom_polygon(aes( group = group, fill = region),show.legend=FALSE,alpha=1/5) +
+geom_point(data = df, aes(x = ser_x, y = ser_y), size = 1) + 
+  geom_point(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole" ),],
+             aes(x = ser_x, y = ser_y, color='red'), size = 1) + 
+scale_fill_grey() +theme_map()+
+  geom_label(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole" ),],
+             aes(x = ser_x, y = ser_y, label=ser_nameshort), size = 3)
+
+```
+
+
+We have asked for pigmentation stage, but there are a lot of NA's..
+
+```{r ge_stage}
+
+# rewrite glass eel stages
+
+# 1	VA	no pigmentation except a spot on the caudal fin
+# 2	VB	early development of the pigmentation on the skull, no superficial piment beyond the cerebral spot.
+# 3	VIA0	development of dorsal pigmentation along the base of dorsal fin
+# 4	VIA1	The dosal pigmentation is complete from head to tail
+# 5	VIA2	Presence of medio lateral pigmentation but it does not reach the beginning of the dorsal fin
+# 6	VIA3	The medio-lateral pigmentation reaches the beginning of the dorsal fin
+# 7	VIA4	Ventro lateral pigmentation distributed along the myosepta. Pigments are still distinct.
+# 8	mix VIA1-VIA4	Development of surface and branchiostegal pigmentation
+# 9	mix VA-VB	No or early pigmentation
+# 10	unknown	glasseels, but pigmentation stage is unknown
+
+dat$ge_stage_corr <- factor(dat$ge_stage)
+
+dat <- dat %>% 
+  mutate(
+    ge_stage_corr = case_when(
+    ge_stage_corr == "VA" ~ "1",
+    ge_stage_corr == "V A" ~ "1",
+    ge_stage_corr == "VB" ~ "2",
+    ge_stage_corr == "V B 1" ~ "2",
+    ge_stage_corr == "V B 2" ~ "2",
+    ge_stage_corr == "VI B I" ~ "2",
+    ge_stage_corr == "VIB" ~ "2",
+    ge_stage_corr == "VI A 0" ~ "3",
+    ge_stage_corr == "VIA0" ~ "3",
+    ge_stage_corr == "VI A 1" ~ "4",
+    ge_stage_corr == "VIA1" ~ "4",
+    ge_stage_corr == "VI A I" ~ "4",
+    ge_stage_corr == "VI A I " ~ "4",
+    ge_stage_corr == "VIA2" ~ "5",
+    ge_stage_corr == "VI A II 1" ~ "5",
+    ge_stage_corr == "VI A II 2" ~ "5",
+    ge_stage_corr == "VI A II 3" ~ "5",
+    ge_stage_corr == "VI A II 4" ~ "5",
+    ge_stage_corr == "VII" ~ "5",
+    ge_stage_corr == "VIA3" ~ "6",
+    ge_stage_corr == "VI A III 1" ~ "6",
+    ge_stage_corr == "VI A III 2" ~ "6",
+    ge_stage_corr == "VI A III 3" ~ "6",
+    ge_stage_corr == "VIA4" ~ "7",
+    ge_stage_corr == "VI A IV 1" ~ "7",
+    ge_stage_corr == "VI A IV 2" ~ "7",
+    ge_stage_corr == "VI A IV 3" ~ "7",
+    ge_stage_corr == "VI A IV 4" ~ "7",
+    ge_stage_corr == "DEFO GLASS EEL" ~ "10",
+    ge_stage_corr == "LIGHT PIG DEFO g EEL" ~ "10",
+    ge_stage_corr == "V LIGHT PIG" ~ "10",
+    ge_stage_corr == "check age G?" ~ "10",
+    ge_stage_corr == "LIGHT PIG" ~ "10",
+    ge_stage_corr == "LIGHT PIGMENT" ~ "10",
+    ge_stage_corr == "DARK PIG" ~ "10",
+    ge_stage_corr == "" ~ "NA",
+    ge_stage_corr == " " ~ "NA",
+       
+    TRUE ~ ge_stage_corr 
+    ))
+
+table(dat$ge_stage_corr, dat$ser_nameshort, useNA='always')
+
+ggplot(data=dat) + geom_point(aes(x=ge_stage_corr, y=lengthmm))+facet_wrap(~ser_nameshort)
+
+write.csv(dat, "S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv")
+dat   <- read.csv("C:\\Tessa\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
+
+write.csv(dat, "S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv")
+
+```
+
+## Plots
+
+```{r pressure, echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+ggplot(dat)+
+  geom_point(aes(x=lengthmm, y=weightg)) + facet_wrap (~ser_nameshort, scales='free')+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggplot(dat)+
+  geom_boxplot(aes(x=ser_nameshort, y=lengthmm)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggplot(dat[dat$weightg <1,])+
+  geom_boxplot(aes(x=ser_nameshort, y=weightg)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# don't try loess for larger datasets!
+ggplot(dat)+
+  geom_point(aes(x=fi_date2, y=lengthmm, color=ge_stage_corr)) +
+  facet_wrap (~ser_nameshort, scales='free')+
+  stat_smooth(aes(x=fi_date2, y=lengthmm))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggplot(dat)+
+  geom_point(aes(x=fi_date2, y=weightg)) +
+  facet_wrap (~ser_nameshort, scales='free')+
+  stat_smooth(aes(x=fi_date2, y=weightg))+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+# ggplot(dat,aes(x=lengthmm)) +
+#   # scale_x_continuous(expand=c(0.02,0),limits=c(40,310),
+#   #                    breaks=seq(0,350,50),
+#   #                    labels=c("","",100,"",200,"",300,"")) +
+#   geom_histogram(aes(y=..ncount..),binwidth=5,fill="gray40") +
+#   facet_wrap(~ser_nameshort,nrow=4,dir="v") +
+#   labs(x="Total Length (mm)",y="Relative Frequency") +
+#   theme_bw() +
+#   theme(axis.text.y=element_blank())
+
+
+ggplot(dat,aes(x=lengthmm,y=ser_nameshort)) +
+  geom_density_ridges(rel_min_height = 0.01) +        # removes tails
+  scale_y_discrete(expand = c(0.01, 0)) +  # removes cutoff top
+  labs(x="Total Length (mm)",y="") +
+  theme_minimal()
+
+ggplot(dat[dat$ser_nameshort %in% 'RhDOG',],aes(x=lengthmm,y=fi_year)) +
+  geom_density_ridges(rel_min_height = 0.01) +        # removes tails
+  scale_y_discrete(expand = c(0.01, 0)) +  # removes cutoff top
+  labs(x="Total Length (mm)",y="Year") +
+  theme_minimal()
+
+
+
+```
+
+

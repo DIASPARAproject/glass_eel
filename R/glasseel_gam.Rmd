@@ -1,0 +1,150 @@
+---
+title: "glasseel_gam"
+author: "Tessa van der Hammen"
+date: "2025-09-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This script analyses glass eel size from different locations in Europe. We do a seasonal gam. 
+
+```{r Process data, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(lubridate)
+library(mgcv)
+library(dplyr)
+library(ggplot2)
+
+# read in data
+#dat   <- read.csv("S:\\Public\\Advisering aal\\2024 EMFAF\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
+dat   <- read.csv("C:\\Tessa\\Glasseel\\datacall\\data\\dat_all_26_09_2025.csv", sep=",")
+
+don   <- dat
+
+###
+origin    <- as.numeric(as.Date(ymd(19600101)))
+don$fi_date <- as.Date(don$fi_date2, format= "%Y-%m-%d")
+don$time  <- as.numeric(as.Date(don$fi_date, format= "%Y-%m-%d")) - origin
+
+# yday is the season
+don$yday=yday(don$fi_date)
+
+nyears <- length(unique(don$fi_year))
+
+```
+
+1. make some exploratory plots with the raw data
+
+```{r exploratory plots, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+# check for outliers
+ggplot(don)+ geom_point(aes(x=fi_date, y=jitter(lengthmm)))+
+  facet_wrap(~ser_nameshort, scales='free_y') +geom_smooth(aes(x=fi_date, y=jitter(lengthmm)))
+
+ggplot(don)+ geom_point(aes(x=yday, y=jitter(lengthmm)))+
+  facet_wrap(~ser_nameshort, scales='free') +geom_smooth(aes(x=yday, y=jitter(lengthmm)))
+
+# make lf distribution
+ggplot(don, aes(x=lengthmm)) +    
+ geom_histogram(binwidth=1)+facet_wrap(~ser_nameshort, scales = "free_y")
+
+```
+
+Do some datacleaning. Remove american eels and dataset with very small amounts of data.Run model from 2000? before it is just Den Oever.
+
+```{r datacleaning, include=FALSE}
+# remove East_river (american eel)
+don <- don[!(don$ser_nameshort %in% 'East_River'),]
+
+# remove datasets with little data
+don <- don[!(don$ser_nameshort %in% c('BdareG', 'FealGY', 'InagG', 'MaigG', 'CorGY', 'BoyneGY','LiffGY', 'InagG', 'FealGY')),]
+
+# remove outliers Den Oever
+don <- don[!(don$ser_nameshort %in% 'RhDOG' & don$yday <75),]
+
+# remove data before 2000?
+#don <- don[dat$fi_year > 1999,]
+
+```
+
+run and check the gam model
+
+```{r gam model}
+# cr is standard cubic spline
+# cc start and end at the same length (for seasonal)
+
+don$ser_nameshort <- as.factor(don$ser_nameshort)
+
+don1 <- don[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date')]
+don1 <- don1[complete.cases(don1),]
+
+g3.1 <- gam(lengthmm~ser_nameshort+s(yday,bs="cc",by=ser_nameshort) +
+            s(time, bs = "cr"),
+               data=don1,
+          family = gaussian)
+
+summary(g3.1)
+#gam.check(g3.1)
+
+don1$res <- residuals(g3.1)
+```
+
+make plots gam model
+
+```{r plots gam model, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+plot(g3.1, ylim=c(-10,10))
+
+ggplot(don1) + 
+  facet_wrap(~ser_nameshort, scales='free_y')+
+  geom_smooth(aes(x=yday, y=res))
+
+ggplot(don1) + 
+  geom_point(aes(x=yday, y=res, color=ser_nameshort))+facet_wrap(~ser_nameshort)+
+  geom_smooth(aes(x=yday, y=res))
+
+predata <- data.frame(
+  dates = rep(seq(as.Date('2000-01-01'), as.Date('2025-12-31'), by = 'days'), length(unique(don$ser_nameshort))),
+  ser_nameshort = rep(unique(don$ser_nameshort), each=length(seq(as.Date('2000-01-01'), as.Date('2025-12-31'), by = 'days'))))
+predata$time <- as.numeric(as.Date(predata$dates, format= "%Y-%m-%d")) - origin
+predata$fi_year <- format(as.Date(predata$dates, format="%Y-%m-%d"), "%Y")
+predata$yday=yday(predata$dates)
+predata$fi_date <- as.Date(predata$dates, format="%Y-%m-%d")
+
+pred <- predict(g3.1, newdata=predata,se.fit=TRUE)
+predata$pred_length <- pred$fit
+predata$pred_length_lwr <- pred$fit-1.96*pred$se.fit
+predata$pred_length_upr <- pred$fit+1.96*pred$se.fit
+
+
+ggplot(predata)+
+  #geom_point(aes(x=fi_date,y=jitter(lengthmm)),col="#043C6B", data=don1)+
+  geom_line(aes(x=fi_date,y=pred_length), col='red')+
+  geom_ribbon(data=predata,aes(x=fi_date,ymin=pred_length_lwr,ymax=pred_length_upr, group=fi_year),alpha=0.3,fill="#BF8330")+
+  theme_minimal()+
+  facet_wrap(~ser_nameshort, scales='free_y')
+  #ylim(0,100)
+
+
+p2  <-  ggplot(predata) +
+  geom_line(aes(x=yday,y=pred_length, group=fi_year, color=fi_year)) +
+  theme_minimal() +
+  theme(panel.border = element_blank(),
+        axis.line = element_line()) +
+  xlab("yday") +
+  facet_wrap(~ser_nameshort)+
+  ylim(63,80)
+print(p2)
+
+
+#plot(g3.1, rug = FALSE, se = FALSE, n2 = 80, main = "gam with t2")
+
+
+
+```
+
+
