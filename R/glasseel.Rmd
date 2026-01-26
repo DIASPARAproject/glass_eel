@@ -19,13 +19,13 @@ library(stringr)
 library(ggmap)
 library(ggthemes)
 # full path to data
-datapath  <-"R/data/"
+datapath  <-"data"
 if(Sys.info()[["user"]] == 'hamme0055'){
   setwd("C:/Tessa/glass_eel/R")
   datawd <- file.path(getwd(),datapath)
 } else if (Sys.info()[["user"]] == 'cedric.briand'){
   setwd("C:/workspace/DIASPARA_glass_eel/R")
-  datawd <- "C:/Users/cedric.briand/OneDrive - EPTB Eaux&Vilaine/Projets/DIASPARA/wgbast"
+  datawd <- file.path(getwd(),datapath)
 }
 
 ```
@@ -36,7 +36,7 @@ if(Sys.info()[["user"]] == 'hamme0055'){
 # Load data
 
 # DEN OEVER NETHERLANDS, 1 location
-DO   <- read.csv(paste(path, "NL_DenOever.csv", sep=""), sep=";")
+DO   <- read.csv(file.path(datawd, "NL_DenOever.csv", sep=""), sep=";")
 DO   <- DO[DO$lengthmm < 90,]
 DO   <- DO[DO$ser_nameshort %in% 'RhDOG',]
 # remove one sample in july in 1971 -> probably error -> check date!
@@ -47,18 +47,18 @@ DO$fi_date2 <- as.Date(DO$fi_date, "%d-%m-%Y")
 
   
 # VILLAINE FRANCE, 1 fisheries and 1 fisheries independent
-VI   <- read.csv(paste(path, "FR_Villaine.csv", sep=""), sep=";")
+VI   <- read.csv(file.path(datawd, "FR_Villaine.csv", sep=""), sep=";")
 VI$fi_date2 <- as.Date(VI$fi_date)
   any(is.na(VI$fi_date2))
   
 # SHIELDAIG SCOTLAND, 1 location
-SH   <- read.csv(paste(path, "SC_Shieldaig.csv", sep=""), sep=";")
+SH   <- read.csv(file.path(datawd, "SC_Shieldaig.csv", sep=""), sep=";")
 SH$fi_date2 <- as.Date(SH$fi_date, "%d-%m-%Y")
   any(is.na(SH$fi_date2))
 
 # BANN, ERNE, STRA, NORTHERN IRELAND
 # no day for many records. We use day 15 instead (or should we remove?)
-ER   <- read.csv(paste(path, "NI_Erne_updated.csv", sep=""), sep=";")
+ER   <- read.csv(file.path(datawd, "NI_Erne_updated.csv", sep=""), sep=";")
 ER$day <- gsub(c('[thAprilAugustMacFebayMayndJy ]'), '',ER$fi_date)
 nrow(ER[ER$day %in% '',]) # 484 from 8064
 ER$day[ER$day %in% ''] <- 15
@@ -67,7 +67,7 @@ ER$fi_date2 <- as.Date(paste(as.character(ER$fi_year),"-", ER$month,"-", ER$day,
 any(is.na(ER$fi_date2))
 
 # ORIA SPAIN, 1 location
-OR   <- read.csv(paste(path, "ES_Oria.csv", sep=""), sep=";")
+OR   <- read.csv(file.path(datawd, "ES_Oria.csv", sep=""), sep=";")
   OR$fi_date2 <- as.Date(OR$date, "%d-%m-%Y")
   any(is.na(OR$fi_date2))
   OR$fi_year <- str_sub(OR$date,-4,-1)
@@ -78,7 +78,7 @@ OR   <- read.csv(paste(path, "ES_Oria.csv", sep=""), sep=";")
   OR$fi_id_cou <- NA
  
 # BURRISHOOLE, IRELAND, 1 location
-BU   <- read.csv(paste(path, "IRE_Burrishoole.csv", sep=""), sep=";")
+BU   <- read.csv(file.path(datawd, "IRE_Burrishoole.csv", sep=""), sep=";")
   BU$fi_date2 <- as.Date(BU$Date,"%d-%m-%Y")
   BU$fi_year <- BU$Cohort.Year
   BU$lengthmm <- BU$Length.cm*10
@@ -94,7 +94,7 @@ BU   <- read.csv(paste(path, "IRE_Burrishoole.csv", sep=""), sep=";")
   
 
 # IRELAND  
-IR   <- read.csv(paste(path, "IRE_IFI.csv", sep=""), sep=";")
+IR   <- read.csv(file.path(datawd, "IRE_IFI.csv", sep=""), sep=";")
   IR$fi_date2 <- as.Date(IR$fi_date, "%d-%m-%Y")
   any(is.na(IR$fi_date2))
   IR$fi_comment <- ""
@@ -103,7 +103,7 @@ IR   <- read.csv(paste(path, "IRE_IFI.csv", sep=""), sep=";")
   
 # AMERICAN EELS, EASTRIVER
       # check dates... different formats in excel. now pragmatic soluation but not sure if it is correct. 
-EA   <- read.csv(paste(path, "CA_Eastriver.csv", sep=""), sep=";")
+EA   <- read.csv(file.path(datawd, "CA_Eastriver.csv", sep=""), sep=";")
   EA$fi_date2 <- as.Date(EA$date,"%d-%m-%Y")
   EA$fi_date2[is.na(EA$fi_date2)] <- as.Date(EA$date[is.na(EA$fi_date2)],"%d/%m/%Y")
   EA$fi_date2[is.na(EA$fi_date2)] <- format(as.Date(EA$date[is.na(EA$fi_date2)], "%m/%d/%y"), "20%y/%m/%d")
@@ -117,8 +117,7 @@ EA   <- read.csv(paste(path, "CA_Eastriver.csv", sep=""), sep=";")
   EA <- EA[!(EA$date %in% '27-01-1900'),]
   EA$ge_stage[is.na(EA$ge_stage)] <-''
   
-  save()
-  
+
 ```
 
 
@@ -149,7 +148,7 @@ Make a map.
 
 load(file = file.path(getwd(),path, "dat.Rdata"))
 dir.exists(path)
-df <- read.csv(paste(path, "2025_lon_lat.csv", sep=""), sep=";")
+df <- read.csv(file.path(datawd, "2025_lon_lat.csv", sep=""), sep=";")
 # some are approximately (data was not provided, clicked on google maps, e.g. oria, burrishoole, etc.)
 
 world_map <- map_data("world", xlim=c(-10,5), ylim=c(40,57))
