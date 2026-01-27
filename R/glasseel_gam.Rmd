@@ -18,6 +18,7 @@ library(lubridate)
 library(mgcv)
 library(dplyr)
 library(ggplot2)
+library(visreg)
 
 # read in data
 load(file = file.path(datawd, "dat.Rdata"))
@@ -46,7 +47,7 @@ ggplot(don)+ geom_point(aes(x=fi_date, y=jitter(lengthmm)))+
   facet_wrap(~ser_nameshort, scales='free_y') +geom_smooth(aes(x=fi_date, y=jitter(lengthmm)))
 
 ggplot(don)+ geom_point(aes(x=yday, y=jitter(lengthmm)))+
-  facet_wrap(~ser_nameshort, scales='free') +geom_smooth(aes(x=yday, y=jitter(lengthmm)))
+  facet_wrap(~ser_nameshort, scales='free_y') +geom_smooth(aes(x=yday, y=jitter(lengthmm)))
 
 # make lf distribution
 ggplot(don, aes(x=lengthmm)) +    
@@ -68,6 +69,8 @@ don <- don[!(don$ser_nameshort %in% 'RhDOG' & don$yday <75),]
 
 # remove data before 2000?
 #don <- don[dat$fi_year > 1999,]
+#
+
 
 ```
 
@@ -82,8 +85,8 @@ don$ser_nameshort <- as.factor(don$ser_nameshort)
 don1 <- don[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date')]
 don1 <- don1[complete.cases(don1),]
 
-g3.1 <- gam(lengthmm~ser_nameshort+s(yday,bs="cc",by=ser_nameshort) +
-            s(time, bs = "cr"),
+g3.1 <- gam(lengthmm~ser_nameshort+s(yday,bs="cc", k=6) +
+            s(time, bs = "cr", k =10),
                data=don1,
           family = gaussian)
 
@@ -91,6 +94,14 @@ summary(g3.1)
 #gam.check(g3.1)
 
 don1$res <- residuals(g3.1)
+vis.gam(g3.1)
+qq.gam(g3.1,rep=100,level=1,type="pearson",pch=19,cex=.2)
+
+time1<-as.numeric(as.Date(ymd(20240101)))-origin
+
+v2<-visreg(g3.1, xvar="time", cond= list(time = time1))
+
+v1<-visreg(g3.1, xvar="yday", by= "ser_nameshort", cond= list(time = time1))
 ```
 
 make plots gam model
