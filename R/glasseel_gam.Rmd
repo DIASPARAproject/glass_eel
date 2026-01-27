@@ -7,6 +7,14 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+datapath  <-"data"
+if(Sys.info()[["user"]] == 'hamme0055'){
+  setwd("C:/Tessa/glass_eel/R")
+  datawd <- file.path(getwd(),datapath)
+} else if (Sys.info()[["user"]] == 'cedric.briand'){
+  setwd("C:/workspace/DIASPARA_glass_eel/R")
+  datawd <- file.path(getwd(),datapath)
+}
 ```
 
 This script analyses glass eel size from different locations in Europe. We do a seasonal gam.
@@ -20,6 +28,7 @@ library(dplyr)
 library(ggplot2)
 library(visreg)
 
+
 # read in data
 load(file = file.path(datawd, "dat.Rdata"))
 
@@ -28,12 +37,15 @@ don   <- dat
 ###
 origin    <- as.numeric(as.Date(ymd(19600101)))
 don$fi_date <- as.Date(don$fi_date2, format= "%Y-%m-%d")
+don$doy=don$yday-305 # year begins in november
+don$season<-paste0(year(don$fi_date)-1,"-",year(don$fi_date)) # year-1-year
 don$time  <- as.numeric(as.Date(don$fi_date, format= "%Y-%m-%d")) - origin
 
 # yday is the season
 don$yday=yday(don$fi_date)
 
 nyears <- length(unique(don$fi_year))
+
 
 ```
 
@@ -158,4 +170,60 @@ print(p2)
 
 ```
 
+```{r gam-specific_ge_stage}
+
+
+```
+
+```{r gam-model_DenOever}
+# First select Den Oever data ------------------
+unique(don$ser_nameshort)
+donrhdo <- don |> filter(ser_nameshort == "RhDOG")
+donrhdo <- donrhdo[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
+donrhdo <- donrhdo[complete.cases(donrhdo),]
+
+# less samples after
+donrhdo |> 
+  group_by(season,yday) |> 
+  summarize(n=n()) |>
+ggplot() + geom_point(aes(x= season, y =yday, size = n ))
+donrhdo$season <- as.factor(donrhdo$season)
+
+g0 <- gam(lengthmm~s(yday,bs="cc", k=6) +    
+            s(time, bs = "cr", k =10),
+               data=donrhdo,
+          family = gaussian)
+AIC(g0) # 437463.3 Deviance explained = 29.2%
+# hierachical structure in the gam model - A general smooth and 
+g1 <- gam(lengthmm~s(yday,bs="cc", k=6) + 
+            s(yday,bs="cc", k=6, by = season) +
+            s(time, bs = "cr", k =10),
+               data=donrhdo,
+          family = gaussian)
+# AIC 431793.3 lower so better deviance explained 23.6%
+nvar <- donrhdo |> distinct(season) |> nrow() + 2
+# plot quickly seasonal trend
+plot(g1, residuals = TRUE, se = TRUE, select = 1)
+
+plot(g1, residuals = FALSE, se = TRUE, pages=1)
+v2<-visreg(gamm_s,xvar="time")
+v2$fit$time=as.Date(v2$fit$time, origin=as.Date(ymd(19970101)))
+v2$res$time=as.Date(v2$res$time, origin=as.Date(ymd(19970101)))
+
+
+```
+
+
+```{r gam-model_all_together}
+
+
+
+```
+
+
+```{r gam-model_east_river}
+
+
+
+```
 

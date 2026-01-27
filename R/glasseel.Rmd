@@ -141,6 +141,8 @@ table(dat$ser_nameshort)
 
 save(dat, file = file.path(datawd, "dat.Rdata"))
 
+
+
 ```
 
 Make a map.
