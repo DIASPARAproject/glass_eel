@@ -8,7 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 datapath  <-"data"
-if(Sys.info()[["user"]] == 'hamme0055'){
+if(Sys.info()[["user"]] == 'hamme005'){
   setwd("C:/Tessa/glass_eel/R")
   datawd <- file.path(getwd(),datapath)
 } else if (Sys.info()[["user"]] == 'cedric.briand'){
