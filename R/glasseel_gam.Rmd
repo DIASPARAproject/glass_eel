@@ -1,7 +1,7 @@
 ---
 title: "glasseel_gam"
-author: "Tessa van der Hammen"
-date: "2025-09-03"
+author: "Tessa van der Hammen & Cedric Briand"
+date: "2025-28-01"
 output: html_document
 ---
 
@@ -225,21 +225,28 @@ v2$res$time=as.Date(v2$res$time, origin=as.Date(ymd(19970101)))
 
 ```{r gam-model_east_river}
 # First select east river data ------------------
+# there is data from 1996 to 2019, but not later
 unique(don$ser_nameshort)
-doner <- don |> filter(ser_nameshort == "East_River")
-doner <- doner[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
-doner <- doner[complete.cases(doner),]
+donea <- don |> filter(ser_nameshort == "East_River")
+donea <- donea[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
+donea <- donea[complete.cases(donea),]
 
-# earlier samples later in the time series:
-doner |> 
+# in 2010 there are samples later in the season
+# from 2016 there are samples earlier in the year
+
+donea |> 
   group_by(season,yday) |> 
   summarize(n=n()) |>
-ggplot() + geom_point(aes(x= season, y =yday, size = n ))
-doner$season <- as.factor(doner$season)
+ggplot() + geom_point(aes(x= season, y =yday, size = n ))+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
 
+donea$season <- as.factor(donea$season)
+
+# cr is standard cubic spline
+# cc start and end at the same length (for seasonal)
 g10 <- gam(lengthmm~s(yday,bs="cr", k=6) +    
             s(time, bs = "cr", k =10),
-               data=doner,
+               data=donea,
           family = gaussian)
 AIC(g10) # 206709.9 Deviance explained = 11.3%
 summary(g10)
@@ -248,16 +255,30 @@ summary(g10)
 g11 <- gam(lengthmm~s(yday,bs="cr", k=6) + 
             s(yday,bs="cr", k=6, by = season) +
             s(time, bs = "cr", k =10),
-               data=doner,
-          family = gaussian)
+               data=donea,
+          family = gaussian) 
 AIC(g11) # 203970.7 Deviance explained = 17.8%
 summary(g11)
 
-nvar <- doner |> distinct(season) |> nrow() + 2
+#nvar <- donea |> distinct(season) |> nrow() + 2
 # plot quickly seasonal trend
+plot(g10, residuals = TRUE, se = TRUE, select = 1)
+plot(g10, residuals = FALSE, se = TRUE, select = 1)
+plot(g10, residuals = FALSE, se = TRUE, select = 2)
+
 plot(g11, residuals = TRUE, se = TRUE, select = 1, ylim=c(-300,1000))
 
 plot(g11, residuals = FALSE, se = TRUE, select=1,ylim=c(-300,1000))
+
+donea$res <- residuals(g11)
+vis.gam(g10)
+qq.gam(g10,rep=100,level=1,type="pearson",pch=19,cex=.2)
+
+time1<-as.numeric(as.Date(ymd(20190101)))-origin
+
+v10<-visreg(g10, xvar="yday", cond= list(time = time1))
+
+
 
 v2$fit$time=as.Date(v2$fit$time, origin=as.Date(ymd(19970101)))
 v2$res$time=as.Date(v2$res$time, origin=as.Date(ymd(19970101)))
