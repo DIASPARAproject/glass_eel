@@ -1,14 +1,14 @@
 ---
 title: "glasseel_gam"
-author: "Tessa van der Hammen & Cedric Briand"
-date: "2025-28-01"
+author: "Tessa van der Hammen"
+date: "2025-09-03"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 datapath  <-"data"
-if(Sys.info()[["user"]] == 'hamme005'){
+if(Sys.info()[["user"]] == 'hamme0055'){
   setwd("C:/Tessa/glass_eel/R")
   datawd <- file.path(getwd(),datapath)
 } else if (Sys.info()[["user"]] == 'cedric.briand'){
@@ -179,47 +179,69 @@ print(p2)
 
 ```{r gam-model_DenOever}
 # First select Den Oever data ------------------
-unique(don$ser_nameshort)
+
 donrhdo <- don |> filter(ser_nameshort == "RhDOG")
 donrhdo <- donrhdo[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
 donrhdo <- donrhdo[complete.cases(donrhdo),]
-
-# less samples after
+donrhdo$year <- year(donrhdo$fi_date)
+# less samples after 2002 and a hole in the series.
 donrhdo |> 
-  group_by(season,yday) |> 
+  group_by(year,yday) |> 
   summarize(n=n()) |>
-ggplot() + geom_point(aes(x= season, y =yday, size = n ))
-donrhdo$season <- as.factor(donrhdo$season)
+ggplot() + geom_point(aes(x= year, y =yday, size = n ))
 
-g0 <- gam(lengthmm~s(yday,bs="cc", k=6) +    
-            s(time, bs = "cr", k =10),
-               data=donrhdo,
-          family = gaussian)
-AIC(g0) # 437463.3 Deviance explained = 29.2%
+
+donrhdo$season <- as.factor(donrhdo$season)
+g0 <- gam(lengthmm~s(yday,bs="cr", k=6) +    
+             s(time, bs = "cr", k = 20),
+                data=donrhdo,
+           family = gaussian)
+plot(g0, residuals = FALSE, se = TRUE, select = 1, ylim =c(-5,5))
+plot(g0, residuals = FALSE, se = TRUE, select = 2, ylim =c(-5,5))
+AIC(g0) # 433328.9 Deviance explained =  24.3% => 27.5 % if k=20
+# model happy to use more DF for the interannual trend if trend is common
 # hierachical structure in the gam model - A general smooth and 
-g1 <- gam(lengthmm~s(yday,bs="cc", k=6) + 
-            s(yday,bs="cc", k=6, by = season) +
-            s(time, bs = "cr", k =10),
+g1 <- gam(lengthmm~s(yday,bs="cr", k=6) + 
+            s(yday,bs="cr", k=4, by = season) +
+            s(time, bs = "cr", k =20),
                data=donrhdo,
           family = gaussian)
-# AIC 431793.3 lower so better deviance explained 23.6%
+# AIC 431793.3 lower so better deviance explained 29.2% =>31.2
 nvar <- donrhdo |> distinct(season) |> nrow() + 2
 # plot quickly seasonal trend
 plot(g1, residuals = TRUE, se = TRUE, select = 1)
 
-plot(g1, residuals = FALSE, se = TRUE, pages=1)
-v2<-visreg(gamm_s,xvar="time")
-v2$fit$time=as.Date(v2$fit$time, origin=as.Date(ymd(19970101)))
-v2$res$time=as.Date(v2$res$time, origin=as.Date(ymd(19970101)))
+# seasonal trend ---------------
+# uncomment for a quick plot
+#plot(g1, residuals = FALSE, se = TRUE, select = 1, ylim =c(-5,5))
+# partial = don't show the partial ressiduals on the plot (to better see the trend)
+# 
+t2024<-as.numeric(as.Date(ymd(20240101)))-origin
+v10 <- visreg(g1, xvar="yday", rug = TRUE, partial = FALSE, cond=list(time=t2024))
+
+# Time -------------
+# uncomment for a quick plot
+# plot(g1, residuals = TRUE, se = TRUE, select = nvar)
 
 
-```
+v11 <- visreg(g1, xvar="time")
+# get back to dates
+v11$fit$time=as.Date(v11$fit$time, origin=origin)
+v11$res$time=as.Date(v11$res$time, origin=origin)
 
+plot(v11,gg=TRUE,
+        points=list(cex=1.5, pch=1),
+        line=list(col="darkblue"),
+        fill=list(col="darkblue",fill="deepskyblue",alpha=0.3))+ 
+        scale_x_date()+ theme_bw()+xlab("Date") + ylab("Size (cm)")
 
-```{r gam-model_all_together}
+# all terms (to see the trend)
 
+# plot(g1,ylim =c(-5,5))
 
-
+# this one is a bit too much... 
+v12 <- visreg(g1, xvar="yday", by ="season", rug = TRUE, partial = FALSE, cond=list(time=t2024))
+qq.gam(g1,rep=100,level=1,type="pearson",pch=19,cex=.2)
 ```
 
 
