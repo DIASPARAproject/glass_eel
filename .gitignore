@@ -35,8 +35,7 @@ po/*~
 rsconnect/
 glass_eel.Rproj
 DIASPARA_glass_eel.Rproj
-
-
 R/data/dat.Rdata
 R/*.html
 .html
+.project
