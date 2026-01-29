@@ -1,12 +1,41 @@
 ---
 title: "glasseel_gam"
-author: "Tessa van der Hammen"
-date: "2025-09-03"
-output: html_document
+author:
+  - Tessa Van De Hammen:
+      email: babla@gmail.com
+      institute: [wageningen]
+      correspondence: true
+  - Cédric Briand:
+      institute: [iav]
+  - Estibaliz Diaz:
+      institute: [azti]
+institute:
+  - wageningen: blablabla
+  - iav: Eaux & Vilaine, bd de Bretagne, La Roche Bernard 56130, France
+  - azti: blablabla
+documentclass: article
+link-citations: yes
+output:
+  bookdown::word_document2:
+    fig_caption: true
+    number_sections: true
+    global_numbering: true
+    keep_md: yes
+    reference_docx: "template.docx"
+    pandoc_args:
+      - '--lua-filter=scholarly-metadata.lua'
+      - '--lua-filter=author-info-blocks.lua'
+bibliography: glass_eel_size.bib
+csl: "elsevier-harvard.csl"
+lang: en
+date: "2026-04-01"
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 datapath  <-"data"
 if(Sys.info()[["user"]] == 'hamme0055'){
   setwd("C:/Tessa/glass_eel/R")
@@ -17,11 +46,83 @@ if(Sys.info()[["user"]] == 'hamme0055'){
 }
 ```
 
-This script analyses glass eel size from different locations in Europe. We do a seasonal gam.
-{>> this is a comment from Cédric >>}
+# Abstract {.unnumbered}
+
+blabla
+
+# Keywords {.unnumbered}
+
+blabla *Anguilla*, glass eel, size
+
+\newpage
+
+# Material and method
+
+## Data collection
+
+Data have been collected at X different locations in Europe from Ireland
+to the Mediterranean and XXX (Figure 1) . Glass eel have been analysed
+alive, measured to the nearest mm in the Oria, Vilaine, Rhine Den
+Oever... . In all estuaries except for the Vilaine and Irish estuaries,
+glass eel have been checked for pigment stages and only lower stages
+(\<=VIA3) [@elie1982] been selected for size analysis. For analysis of
+weight, only stages (\<VIA2) have been used.\
+In all sites glass eel have been blotted on filter paper before weight
+measure.
+
+\*\*The Vilaine\*\*
+
+Samples collected in the Vilaine, either collected in the intraseasonal
+or (later in the season) at the trapping ladder. In the intraseasonal
+either sampling trips below the Arzal dam, tidal limit, 12 km from the
+sea, or bought from the fishermen at the same location immediately
+downstream from the dam. Glass eel are collected at the trapping ladder
+throughout the year, they are more pigmented than those collected at the
+same time in the estuary and this is an indication of a longer estuarine
+residence [@briand2009a]. Over the sampling period, most samples
+contained 50 glass eel but some were based on a lower number, especially
+at the time glass eel are not numerous to reach the sample size
+[@briand2003].
+
+The Oria.
+
+{Experimental fisheries for glass eel were carried out from 2005 to 2012
+\citep{AranburuGlasseelrecruitment2015} and then sampling collection was
+started anew in 2016 and 2017. Samples were collected during the new and
+full moon during the fishing season. Sampling has been carried out at
+four point in the Oria intraseasonal from the river mouth to the tidal
+limit (12 km). From 2005 to 2009 the fishing season was
+October-February. From 2009 sampling has only been carried out from
+15$^{th}$ of November to January 31$^{st}$. All the glass eel in sample
+were measured untill a minimum count of 30 was reached.}
+
+The Nalon.
+
+{The Nalon. Since 2011/12 to 2015/16 glass eel samples were collected in
+experimental fisheries onboard fishing or scientific vessels. In 2016/17
+and 2017/18 samples were collected in San Juan de la Arena fish market
+from catches of the glass eel fishery. All samplings were carried out
+during the "new moon" periods of each fishing season. All specimens were
+weighed (g), measured (mm) and classified according to their
+pigmentation.}
+
+Ireland.
+
+The glass eels sampled from the N. Ireland coastline sites of
+Strangford, Carlingford and Lagan, were collected using 1m diameter drag
+nets deployed along the banks of each estuary during the last half of a
+rising Spring tide. These exploratory surveys were developed to provide
+new index sites for direct comparative analysis against the data from
+the long established glass eel collection station at the Bann. Samples
+of 100+ specimens were collected across a range of dates from the
+various sites between January to August 2003-2016 and preserved in 70%
+ethanol. All lab based measurements (length (mm) and weight (g)) were
+taken from these preserved specimens, however no determination of glass
+eel developmental stage was made given that these surveys were directed
+at presence/absence of glass eel.
 
 ```{r Process data, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
 library(lubridate)
 library(mgcv)
 library(dplyr)
@@ -51,10 +152,10 @@ nyears <- length(unique(don$fi_year))
 
 ```
 
-1. make some exploratory plots with the raw data
+# make some exploratory plots with the raw data
 
-```{r exploratory plots, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+```{r exploratory_plots, eval= FALSE, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+knitr::opts_chunk$set(echo=FALSE)
 
 # check for outliers
 ggplot(don)+ geom_point(aes(x=fi_date, y=jitter(lengthmm)))+
@@ -69,9 +170,10 @@ ggplot(don, aes(x=lengthmm)) +
 
 ```
 
-Do some datacleaning. Remove american eels and dataset with very small amounts of data.Run model from 2000? before it is just Den Oever.
+Do some datacleaning. Remove american eels and dataset with very small
+amounts of data.Run model from 2000? before it is just Den Oever.
 
-```{r datacleaning, include=FALSE}
+```{r datacleaning, include=FALSE, eval=TRUE}
 # remove East_river (american eel)
 #don <- don[!(don$ser_nameshort %in% 'East_River'),]
 
@@ -90,7 +192,7 @@ don <- don[!(don$ser_nameshort %in% 'RhDOG' & don$yday <75),]
 
 run and check the gam model
 
-```{r gam model}
+```{r gam_model, eval=FALSE}
 # cr is standard cubic spline
 # cc start and end at the same length (for seasonal)
 
@@ -120,9 +222,8 @@ v1<-visreg(g3.1, xvar="yday", by= "ser_nameshort", cond= list(time = time1))
 
 make plots gam model
 
-```{r plots gam model, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r plots_gam_model, eval=FALSE, paged.print=FALSE}
 
-plot(g3.1, ylim=c(-10,10))
 
 ggplot(don1) + 
   facet_wrap(~ser_nameshort, scales='free_y')+
@@ -172,12 +273,12 @@ print(p2)
 
 ```
 
-```{r gam-specific_ge_stage}
+```{r gam-specific_ge_stage, eval=FALSE}
 
 
 ```
 
-```{r gam-model_DenOever}
+```{r gam-model_DenOever, eval=FALSE}
 # First select Den Oever data ------------------
 
 donrhdo <- don |> filter(ser_nameshort == "RhDOG")
@@ -244,8 +345,7 @@ v12 <- visreg(g1, xvar="yday", by ="season", rug = TRUE, partial = FALSE, cond=l
 qq.gam(g1,rep=100,level=1,type="pearson",pch=19,cex=.2)
 ```
 
-
-```{r gam-model_east_river}
+```{r gam-model_east_river, eval=FALSE}
 # First select east river data ------------------
 # there is data from 1996 to 2019, but not later
 unique(don$ser_nameshort)
@@ -309,4 +409,3 @@ v2<-visreg(g11,xvar="time")
 
 
 ```
-
