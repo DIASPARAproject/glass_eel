@@ -235,9 +235,9 @@ donea <- donea[complete.cases(donea),]
 # from 2016 there are samples earlier in the year
 
 donea |> 
-  group_by(season,yday) |> 
+  group_by(fi_date,yday) |> 
   summarize(n=n()) |>
-ggplot() + geom_point(aes(x= season, y =yday, size = n ))+
+ggplot() + geom_point(aes(x= fi_date, y =yday, size = n ))+
   theme(axis.text.x = element_text(angle = 45, hjust=1))
 
 donea$season <- as.factor(donea$season)
@@ -277,7 +277,7 @@ qq.gam(g10,rep=100,level=1,type="pearson",pch=19,cex=.2)
 time1<-as.numeric(as.Date(ymd(20190101)))-origin
 
 v10<-visreg(g10, xvar="yday", cond= list(time = time1))
-
+v10<-visreg(g10, xvar="time", cond= list(time = time1))
 
 
 v2$fit$time=as.Date(v2$fit$time, origin=as.Date(ymd(19970101)))
