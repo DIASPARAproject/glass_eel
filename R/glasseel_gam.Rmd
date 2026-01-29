@@ -37,12 +37,13 @@ don   <- dat
 ###
 origin    <- as.numeric(as.Date(ymd(19600101)))
 don$fi_date <- as.Date(don$fi_date2, format= "%Y-%m-%d")
-don$yday=yday(don$fi_date)
+
+don$yday=yday(don$fi_date) # yday is the season
+
 don$doy=don$yday-305 # year begins in november
 don$season<-paste0(year(don$fi_date)-1,"-",year(don$fi_date)) # year-1-year
 don$time  <- as.numeric(as.Date(don$fi_date, format= "%Y-%m-%d")) - origin
 
-# yday is the season
 
 
 nyears <- length(unique(don$fi_year))
@@ -72,7 +73,7 @@ Do some datacleaning. Remove american eels and dataset with very small amounts o
 
 ```{r datacleaning, include=FALSE}
 # remove East_river (american eel)
-don <- don[!(don$ser_nameshort %in% 'East_River'),]
+#don <- don[!(don$ser_nameshort %in% 'East_River'),]
 
 # remove datasets with little data
 don <- don[!(don$ser_nameshort %in% c('BdareG', 'FealGY', 'InagG', 'MaigG', 'CorGY', 'BoyneGY','LiffGY', 'InagG', 'FealGY')),]
@@ -207,6 +208,8 @@ g1 <- gam(lengthmm~s(yday,bs="cr", k=6) +
           family = gaussian)
 # AIC 431793.3 lower so better deviance explained 29.2% =>31.2
 nvar <- donrhdo |> distinct(season) |> nrow() + 2
+# plot quickly seasonal trend
+plot(g1, residuals = TRUE, se = TRUE, select = 1)
 
 # seasonal trend ---------------
 # uncomment for a quick plot
@@ -242,14 +245,66 @@ qq.gam(g1,rep=100,level=1,type="pearson",pch=19,cex=.2)
 ```
 
 
-```{r gam-model_all_together}
-
-
-
-```
-
-
 ```{r gam-model_east_river}
+# First select east river data ------------------
+# there is data from 1996 to 2019, but not later
+unique(don$ser_nameshort)
+donea <- don |> filter(ser_nameshort == "East_River")
+donea <- donea[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
+donea <- donea[complete.cases(donea),]
+
+# in 2010 there are samples later in the season
+# from 2016 there are samples earlier in the year
+
+donea |> 
+  group_by(season,yday) |> 
+  summarize(n=n()) |>
+ggplot() + geom_point(aes(x= season, y =yday, size = n ))+
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
+
+donea$season <- as.factor(donea$season)
+
+# cr is standard cubic spline
+# cc start and end at the same length (for seasonal)
+g10 <- gam(lengthmm~s(yday,bs="cr", k=6) +    
+            s(time, bs = "cr", k =10),
+               data=donea,
+          family = gaussian)
+AIC(g10) # 206709.9 Deviance explained = 11.3%
+summary(g10)
+
+# hierachical structure in the gam model - A general smooth and 
+g11 <- gam(lengthmm~s(yday,bs="cr", k=6) + 
+            s(yday,bs="cr", k=6, by = season) +
+            s(time, bs = "cr", k =10),
+               data=donea,
+          family = gaussian) 
+AIC(g11) # 203970.7 Deviance explained = 17.8%
+summary(g11)
+
+#nvar <- donea |> distinct(season) |> nrow() + 2
+# plot quickly seasonal trend
+plot(g10, residuals = TRUE, se = TRUE, select = 1)
+plot(g10, residuals = FALSE, se = TRUE, select = 1)
+plot(g10, residuals = FALSE, se = TRUE, select = 2)
+
+plot(g11, residuals = TRUE, se = TRUE, select = 1, ylim=c(-300,1000))
+
+plot(g11, residuals = FALSE, se = TRUE, select=1,ylim=c(-300,1000))
+
+donea$res <- residuals(g11)
+vis.gam(g10)
+qq.gam(g10,rep=100,level=1,type="pearson",pch=19,cex=.2)
+
+time1<-as.numeric(as.Date(ymd(20190101)))-origin
+
+v10<-visreg(g10, xvar="yday", cond= list(time = time1))
+
+
+
+v2$fit$time=as.Date(v2$fit$time, origin=as.Date(ymd(19970101)))
+v2$res$time=as.Date(v2$res$time, origin=as.Date(ymd(19970101)))
+v2<-visreg(g11,xvar="time")
 
 
 
