@@ -1,8 +1,8 @@
 ---
 title: "glasseel_gam"
 author:
-  - Tessa Van De Hammen:
-      email: babla@gmail.com
+  - Tessa van der Hammen:
+      email: tessa.vanderhammen@wur.nl
       institute: [wageningen]
       correspondence: true
   - Cédric Briand:
@@ -37,7 +37,7 @@ editor_options:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 datapath  <-"data"
-if(Sys.info()[["user"]] == 'hamme0055'){
+if(Sys.info()[["user"]] == 'hamme005'){
   setwd("C:/Tessa/glass_eel/R")
   datawd <- file.path(getwd(),datapath)
 } else if (Sys.info()[["user"]] == 'cedric.briand'){
@@ -48,13 +48,26 @@ if(Sys.info()[["user"]] == 'hamme0055'){
 
 # Abstract {.unnumbered}
 
-blabla
+blabla [@jessop2021]
 
 # Keywords {.unnumbered}
 
-blabla *Anguilla*, glass eel, size
+*Anguilla*, glasseel, size
 
 \newpage
+
+# Introduction
+
+-successful oceanographic migration depends on oceanographic conditions
+which determine leptocephali transport, feeding and mortality.
+
+-glasseels arrive at the inland waters at different sizes per location,
+but also there is variation within location
+
+\- Larvae using shorter routes produce smaller glasseels.
+
+-Lecomte-Finiger 1992 is wrong? not every dayring is counted? There is a
+table with estimated of the migration time.
 
 # Material and method
 
@@ -106,7 +119,7 @@ during the "new moon" periods of each fishing season. All specimens were
 weighed (g), measured (mm) and classified according to their
 pigmentation.}
 
-Ireland.
+Northern Ireland.
 
 The glass eels sampled from the N. Ireland coastline sites of
 Strangford, Carlingford and Lagan, were collected using 1m diameter drag
@@ -121,7 +134,24 @@ taken from these preserved specimens, however no determination of glass
 eel developmental stage was made given that these surveys were directed
 at presence/absence of glass eel.
 
-```{r Process data, include=FALSE}
+Ireland Burrishoole
+
+Den Oever
+
+The time series in Den Oever is a long glasseel survey time-series
+starting in 1938. Since 1960 glasseel lengths are estimated, with a
+break between 20xx and 2012. Untill XXX a sample of 150 glasseels was
+taken every week and the lengths were measured with live glasseels
+onsite after anesthesia with XXX. Since 2012 a sample of xxx was taken
+every xxx, because the number of caught glasseels per haul had declined
+dramatically. In the Netherlands the main glasseel season is from march
+to june.
+
+Shielddaig Scotland
+
+East River Canada - *Anguilla rostrata*
+
+```{r Process data, include=FALSE, eval=TRUE}
 knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
 library(lubridate)
 library(mgcv)
