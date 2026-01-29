@@ -250,6 +250,13 @@ qq.gam(g1,rep=100,level=1,type="pearson",pch=19,cex=.2)
 # there is data from 1996 to 2019, but not later
 unique(don$ser_nameshort)
 donea <- don |> filter(ser_nameshort == "East_River")
+
+table(donea$month <- format(donea$fi_date, "%m"), donea$season)
+# we remove months september, november and december in 2010-2011
+donea <- donea[!(format(donea$fi_date, "%m") %in% c("09","11","12")),]
+# we remove length < 40 mm and larger then 80mm
+donea <- donea[!(donea$lengthmm <45) & !(donea$lengthmm >80),]
+
 donea <- donea[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', "season")]
 donea <- donea[complete.cases(donea),]
 
@@ -270,16 +277,17 @@ g10 <- gam(lengthmm~s(yday,bs="cr", k=6) +
             s(time, bs = "cr", k =10),
                data=donea,
           family = gaussian)
-AIC(g10) # 206709.9 Deviance explained = 11.3%
+AIC(g10) # 205092.3 Deviance explained = 11.5%
 summary(g10)
 
+# season 2010-2011 differs....
 # hierachical structure in the gam model - A general smooth and 
 g11 <- gam(lengthmm~s(yday,bs="cr", k=6) + 
             s(yday,bs="cr", k=6, by = season) +
             s(time, bs = "cr", k =10),
                data=donea,
           family = gaussian) 
-AIC(g11) # 203970.7 Deviance explained = 17.8%
+AIC(g11) # 202278.4 Deviance explained = 18.2%
 summary(g11)
 
 #nvar <- donea |> distinct(season) |> nrow() + 2
@@ -288,6 +296,7 @@ plot(g10, residuals = TRUE, se = TRUE, select = 1)
 plot(g10, residuals = FALSE, se = TRUE, select = 1)
 plot(g10, residuals = FALSE, se = TRUE, select = 2)
 
+plot(g11,ylim=c(-100,500))
 plot(g11, residuals = TRUE, se = TRUE, select = 1, ylim=c(-300,1000))
 
 plot(g11, residuals = FALSE, se = TRUE, select=1,ylim=c(-300,1000))
