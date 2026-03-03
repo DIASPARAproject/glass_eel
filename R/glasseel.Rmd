@@ -20,7 +20,7 @@ library(ggmap)
 library(ggthemes)
 # full path to data
 datapath  <-"data"
-if(Sys.info()[["user"]] == 'hamme0055'){
+if(Sys.info()[["user"]] == 'hamme005'){
   setwd("C:/Tessa/glass_eel/R")
   datawd <- file.path(getwd(),datapath)
 } else if (Sys.info()[["user"]] == 'cedric.briand'){
@@ -45,8 +45,6 @@ DO <- DO[!(DO$fi_date2 %in% '1971-07-21'),]
 
   any(is.na(DO$fi_date2))
 
-
-  
 # VILLAINE FRANCE, 1 fisheries and 1 fisheries independent
 VI   <- read.csv(file.path(datawd, "FR_Villaine.csv", sep=""), sep=";")
 VI$fi_date2 <- as.Date(VI$fi_date)
@@ -78,6 +76,14 @@ OR   <- read.csv(file.path(datawd, "ES_Oria.csv", sep=""), sep=";")
   OR$fi_comment <- OR$depth
   OR$fi_id_cou <- NA
  
+  # Bages-Sigean, Mediteranean SPAIN, 1 location
+BS <- read.csv(file.path(datawd, "ES_BagesSigean.csv", sep=""), sep=";")
+  BS$fi_date2 <- as.Date(BS$fi_date, "%d-%m-%Y")
+  any(is.na(BS$fi_date2))
+  BS$fi_year <- format(as.Date(BS$fi_date2), "%Y")
+  BS$fi_comment <- NA
+  BS$fi_id_cou <- NA
+  
 # BURRISHOOLE, IRELAND, 1 location
 BU   <- read.csv(file.path(datawd, "IRE_Burrishoole.csv", sep=""), sep=";")
   BU$fi_date2 <- as.Date(BU$Date,"%d-%m-%Y")
@@ -105,6 +111,9 @@ IR   <- read.csv(file.path(datawd, "IRE_IFI.csv", sep=""), sep=";")
 # AMERICAN EELS, EASTRIVER
       # check dates... different formats in excel. now pragmatic soluation but not sure if it is correct. 
 EA   <- read.csv(file.path(datawd, "CA_Eastriver.csv", sep=""), sep=";")
+EA2024   <- read.csv(file.path(datawd, "CA_Eastriver2024.csv", sep=""), sep=";")
+EA2025   <- read.csv(file.path(datawd, "CA_Eastriver2025.csv", sep=""), sep=";")
+
   EA$fi_date2 <- as.Date(EA$date,"%d-%m-%Y")
   EA$fi_date2[is.na(EA$fi_date2)] <- as.Date(EA$date[is.na(EA$fi_date2)],"%d/%m/%Y")
   EA$fi_date2[is.na(EA$fi_date2)] <- format(as.Date(EA$date[is.na(EA$fi_date2)], "%m/%d/%y"), "20%y/%m/%d")
@@ -117,8 +126,26 @@ EA   <- read.csv(file.path(datawd, "CA_Eastriver.csv", sep=""), sep=";")
   EA$fi_comment <- NA
   EA <- EA[!(EA$date %in% '27-01-1900'),]
   EA$ge_stage[is.na(EA$ge_stage)] <-''
-  
 
+
+ EA2024$fi_date2 <- as.Date(paste(as.character(EA2024$year),"-", EA2024$month,"-", EA2024$day, sep='')) 
+ EA2024$fi_date2 <- as.Date(EA2024$fi_date2,"%d-%m-%Y")
+ 
+ EA2025$fi_date2 <- as.Date(EA2025$date,"%d-%m-%Y")
+ EA2025$year     <- 2025
+ 
+ EA24_25 <- rbind(EA2024[,c('fi_date2', 'length', 'weight', 'year', 'stage')],
+                  EA2025[,c('fi_date2', 'length', 'weight', 'year', 'stage')])
+  
+ EA24_25$fi_year  <- EA24_25$year
+ EA24_25$lengthmm <- EA24_25$length
+ EA24_25$weightg <- EA24_25$weight
+ EA24_25$ser_nameshort <- 'East_River'
+ EA24_25$fi_comment <- ''
+ EA24_25$ge_stage <- EA24_25$stage 
+ EA24_25$fi_id_cou <- ''
+ 
+ 
 ```
 
 
@@ -128,16 +155,16 @@ dat <- rbind(DO[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","
              SH[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
              ER[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
              OR[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             BS[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
              EA[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
+             EA24_25[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
              BU[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")],
              IR[,c("fi_id_cou","ser_nameshort","fi_date2","fi_year","ge_stage","lengthmm","weightg","fi_comment")])
 dat <- dat[!(dat$ser_nameshort %in% ''),]
 
+dat$weightg <- as.numeric(dat$weightg)
 
-dat2 <- aggregate(list(number=dat$ser_nameshort), list(nameshort=dat$ser_nameshort,year=dat$fi_year), length)
-aggregate(list(number_years=dat2$nameshort), list(nameshort=dat2$nameshort), length)
-
-table(dat$ser_nameshort)
+table(dat$ser_nameshort, dat$fi_year)
 
 save(dat, file = file.path(datawd, "dat.Rdata"))
 
@@ -159,10 +186,10 @@ world_map <- map_data("world", xlim=c(-10,5), ylim=c(40,57))
 ggplot(world_map, aes(x = long, y = lat)) + 
 geom_polygon(aes( group = group, fill = region),show.legend=FALSE,alpha=1/5) +
 geom_point(data = df, aes(x = ser_x, y = ser_y), size = 1) + 
-  geom_point(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole" ),],
-             aes(x = ser_x, y = ser_y, color='red'), size = 1) + 
+#  geom_point(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole", 'BagesSigean' ),],
+#             aes(x = ser_x, y = ser_y, color='red'), size = 1) + 
 scale_fill_grey() +theme_map()+
-  geom_label(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole" ),],
+  geom_label(data = df[df$ser_nameshort %in% c( "RhDOG","VilTG","VilG", "ShiMG", "BannG", "StraG" , "ErneG", "Oria","Burrishoole", 'BagesSigean' ),],
              aes(x = ser_x, y = ser_y, label=ser_nameshort), size = 3)
 
 ```
@@ -243,7 +270,7 @@ table(dat$ge_stage_corr, dat$ser_nameshort, useNA='always')
 
 ggplot(data=dat) + geom_point(aes(x=ge_stage_corr, y=lengthmm))+facet_wrap(~ser_nameshort)
 
-save(file = file.path(datawd, "dat.Rdata"))
+save(dat, file = file.path(datawd, "dat.Rdata"))
 
 
 
@@ -266,8 +293,8 @@ ggplot(dat[dat$weightg <1,])+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 # don't try loess for larger datasets!
-ggplot(dat)+
-  geom_point(aes(x=fi_date2, y=lengthmm, color=ge_stage_corr)) +
+ggplot(dat[dat$ser_nameshort %in% 'East_River' & dat$lengthmm >40 & dat$lengthmm <80,])+
+  geom_point(aes(x=fi_date2, y=lengthmm)) +
   facet_wrap (~ser_nameshort, scales='free')+
   stat_smooth(aes(x=fi_date2, y=lengthmm))+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -295,11 +322,11 @@ ggplot(dat,aes(x=lengthmm,y=ser_nameshort)) +
   labs(x="Total Length (mm)",y="") +
   theme_minimal()
 
-ggplot(dat[dat$ser_nameshort %in% 'RhDOG',],aes(x=lengthmm,y=fi_year)) +
-  geom_density_ridges(rel_min_height = 0.01) +        # removes tails
-  scale_y_discrete(expand = c(0.01, 0)) +  # removes cutoff top
-  labs(x="Total Length (mm)",y="Year") +
-  theme_minimal()
+# ggplot(dat[dat$ser_nameshort %in% 'RhDOG',],aes(x=lengthmm,y=fi_year)) +
+#   geom_density_ridges(rel_min_height = 0.01) +        # removes tails
+#   scale_y_discrete(expand = c(0.01, 0)) +  # removes cutoff top
+#   labs(x="Total Length (mm)",y="Year") +
+#   theme_minimal()
 
 
 
