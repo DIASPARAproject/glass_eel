@@ -7,12 +7,11 @@ author:
       correspondence: true
   - Cédric Briand:
       institute: [iav]
-  - Estibaliz Diaz:
-      institute: [azti]
+
 institute:
   - wageningen: blablabla
   - iav: Eaux & Vilaine, bd de Bretagne, La Roche Bernard 56130, France
-  - azti: blablabla
+
 documentclass: article
 link-citations: yes
 output:
@@ -172,7 +171,7 @@ don$fi_date <- as.Date(don$fi_date2, format= "%Y-%m-%d")
 don$yday=yday(don$fi_date) # yday is the season
 
 don$doy=don$yday-305 # year begins in november
-don$season<-paste0(year(don$fi_date)-1,"-",year(don$fi_date)) # year-1-year
+don$season<-paste0(year(don$fi_date)-1,"-",year(don$fi_date)) # year-1-year. How does this work;it adds the year before, but doesn't start in november?
 don$time  <- as.numeric(as.Date(don$fi_date, format= "%Y-%m-%d")) - origin
 
 
@@ -191,12 +190,19 @@ knitr::opts_chunk$set(echo=FALSE)
 ggplot(don)+ geom_point(aes(x=fi_date, y=jitter(lengthmm)))+
   facet_wrap(~ser_nameshort, scales='free_y') +geom_smooth(aes(x=fi_date, y=jitter(lengthmm)))
 
+ggplot(don)+ geom_boxplot(aes(x=fi_year, y=(lengthmm)))+
+  facet_wrap(~ser_nameshort, scales='free') +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
 ggplot(don)+ geom_point(aes(x=yday, y=jitter(lengthmm)))+
   facet_wrap(~ser_nameshort, scales='free_y') +geom_smooth(aes(x=yday, y=jitter(lengthmm)))
 
 # make lf distribution
 ggplot(don, aes(x=lengthmm)) +    
  geom_histogram(binwidth=1)+facet_wrap(~ser_nameshort, scales = "free_y")
+
+# make lf distribution
+ggplot(don[don$lengthmm <95 & don$lengthmm>45,], aes(x=lengthmm, color=ser_nameshort)) +  geom_histogram(binwidth=1)
 
 ```
 
@@ -228,8 +234,11 @@ run and check the gam model
 
 don$ser_nameshort <- as.factor(don$ser_nameshort)
 
-don1 <- don[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date')]
+don1 <- don[, c("lengthmm", "ser_nameshort", "time", 'yday', 'fi_date', 'fi_year')]
+don1 <- don1[don1$fi_year >1990,]
 don1 <- don1[complete.cases(don1),]
+#don1 <- don1[don1$ser_nameshort %in% c('RhDOG', 'Oria','VilTG','BannG','ShiMG'),]
+
 
 g3.1 <- gam(lengthmm~ser_nameshort+s(yday,bs="cc", k=6) +
             s(time, bs = "cr", k =10),
@@ -248,6 +257,18 @@ time1<-as.numeric(as.Date(ymd(20240101)))-origin
 v2<-visreg(g3.1, xvar="time", cond= list(time = time1))
 
 v1<-visreg(g3.1, xvar="yday", by= "ser_nameshort", cond= list(time = time1))
+
+# get back to dates
+v2$fit$time=as.Date(v2$fit$time, origin=origin)
+v2$res$time=as.Date(v2$res$time, origin=origin)
+
+plot(v2,gg=TRUE,
+        points=list(cex=1.5, pch=1),
+        line=list(col="darkblue"),
+        fill=list(col="darkblue",fill="deepskyblue",alpha=0.3))+ 
+        scale_x_date()+ theme_bw()+xlab("Date") + ylab("Size (cm)")
+
+
 ```
 
 make plots gam model
