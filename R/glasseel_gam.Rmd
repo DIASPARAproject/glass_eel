@@ -9,7 +9,7 @@ author:
       institute: [iav]
 
 institute:
-  - wageningen: blablabla
+  - wageningen: Wageningen Marine Research, PO Box 68, 1970 AB IJmuiden, Netherlands
   - iav: Eaux & Vilaine, bd de Bretagne, La Roche Bernard 56130, France
 
 documentclass: article
@@ -51,11 +51,23 @@ blabla [@jessop2021]
 
 # Keywords {.unnumbered}
 
-*Anguilla*, glasseel, size
+*Anguilla*, glass eel, size
 
 \newpage
 
 # Introduction
+
+-   Species in the Anguilla genus, such as the European eel (Anguilla
+    anguilla) and the American Eel (Anguilla Rostrata) are facultatively
+    catadromous fish.
+
+Because the smallest eel larvae were caught in the vicinity of the
+Sargasso Sea, spawning is assumed to occur there (Schmidt 1923, Schoth &
+Tesch 1982). As leptocephali larvea eel cross the Atlantic Ocean. When
+they reach the European continental shelf the leptocephali metamorphose
+into glass eels, where most try to migrate upstream on the European and
+North African rivers. After they reached the European coaste, glass eel
+start to pigment and become yellow eels.
 
 -successful oceanographic migration depends on oceanographic conditions
 which determine leptocephali transport, feeding and mortality.
@@ -68,23 +80,25 @@ but also there is variation within location
 -Lecomte-Finiger 1992 is wrong? not every dayring is counted? There is a
 table with estimated of the migration time.
 
-# Material and method
+# Material and methods
 
 ## Data collection
 
 Data have been collected at X different locations in Europe from Ireland
-to the Mediterranean and XXX (Figure 1) . Glass eel have been analysed
+to the Mediterranean and XXX (Figure 1). Glass eel have been analysed
 alive, measured to the nearest mm in the Oria, Vilaine, Rhine Den
-Oever... . In all estuaries except for the Vilaine and Irish estuaries,
+Oever... In all estuaries except for the Vilaine and Irish estuaries,
 glass eel have been checked for pigment stages and only lower stages
 (\<=VIA3) [@elie1982] been selected for size analysis. For analysis of
 weight, only stages (\<VIA2) have been used.\
 In all sites glass eel have been blotted on filter paper before weight
 measure.
 
-\*\*The Vilaine\*\*
+\*\*Ireland - Burrishoole\*\*
 
-Samples collected in the Vilaine, either collected in the intraseasonal
+\*\*France - The Vilaine\*\*
+
+Samples collected in the Vilaine either collected in the intraseasonal
 or (later in the season) at the trapping ladder. In the intraseasonal
 either sampling trips below the Arzal dam, tidal limit, 12 km from the
 sea, or bought from the fishermen at the same location immediately
@@ -96,7 +110,7 @@ contained 50 glass eel but some were based on a lower number, especially
 at the time glass eel are not numerous to reach the sample size
 [@briand2003].
 
-The Oria.
+Spain - The Oria.
 
 {Experimental fisheries for glass eel were carried out from 2005 to 2012
 \citep{AranburuGlasseelrecruitment2015} and then sampling collection was
@@ -120,7 +134,7 @@ pigmentation.}
 
 Northern Ireland.
 
-The glass eels sampled from the N. Ireland coastline sites of
+The glass eels sampled from the Northern Ireland coastline sites of
 Strangford, Carlingford and Lagan, were collected using 1m diameter drag
 nets deployed along the banks of each estuary during the last half of a
 rising Spring tide. These exploratory surveys were developed to provide
@@ -133,30 +147,37 @@ taken from these preserved specimens, however no determination of glass
 eel developmental stage was made given that these surveys were directed
 at presence/absence of glass eel.
 
-Ireland Burrishoole
+Netherlands - Den Oever
 
-Den Oever
+Glass eel monitoring at Den Oever was carried out since 1938 with a 1m2
+liftnet at night at two-hourly intervals during spring. The sampling
+location is right in front of the discharge sluices in the dike that
+separates a large freshwater lake (Lake IJsselmeer, 1820 km2) from the
+brackish Wadden Sea. Since 1960 glass eel lengths have been measured,
+with gaps in 2002, 2004-2011 and 2014. In principle the measurements
+were taken from the glass eels caught in the liftnet monitoring. When
+that resulted in low numbers, in some years additional sampling took
+place at the nearby ship locks. Sampling occurred at night, and the
+glass eels were anaesthetized in a solution of MS222 and measured to the
+nearest millimeter. In most of the years, length measurements were taken
+once a week during March-April. The main glass eel season in the
+Netherlands is from March to June, with the peak in April. Because of
+the decline in glass eel arrival in the 1980's, the number of glass eels
+measured is lower in the more recent years because the number of glass
+eels caught were not always sufficient for larger samples.
 
-The time series in Den Oever is a long glasseel survey time-series
-starting in 1938. Since 1960 glasseel lengths are estimated, with a
-break between 20xx and 2012. Untill XXX a sample of 150 glasseels was
-taken every week and the lengths were measured with live glasseels
-onsite after anesthesia with XXX. Since 2012 a sample of xxx was taken
-every xxx, because the number of caught glasseels per haul had declined
-dramatically. In the Netherlands the main glasseel season is from march
-to june.
-
-Shielddaig Scotland
+Scotland - Shielddaig
 
 East River Canada - *Anguilla rostrata*
 
-```{r Process data, include=FALSE, eval=TRUE}
+```{r Process data, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,message=FALSE, warning=FALSE)
 library(lubridate)
 library(mgcv)
 library(dplyr)
 library(ggplot2)
 library(visreg)
+library(kableExtra)
 
 
 # read in data
@@ -181,9 +202,29 @@ nyears <- length(unique(don$fi_year))
 
 ```
 
+```{r make info_table, echo=FALSE}
+
+# table with location name, start year, end year, length presence/absence 
+
+df <- don %>%
+   group_by(ser_nameshort) %>%  
+   summarise(min_year= min(fi_year),
+             max_year= max(fi_year),
+             total_nr_years = n_distinct(fi_year),
+             length_measurements =  sum(!is.na(lengthmm)),
+             weight_measurements =  sum(!is.na(weightg)))
+df
+
+# this doesn't work in word
+#df %>%
+ # kbl() %>%
+  #kable_styling()
+
+```
+
 # make some exploratory plots with the raw data
 
-```{r exploratory_plots, eval= FALSE, echo=TRUE, message=FALSE, warning=FALSE, paged.print=FALSE}
+```{r exploratory_plots, eval=FALSE, message=FALSE, warning=FALSE, include=FALSE, paged.print=FALSE}
 knitr::opts_chunk$set(echo=FALSE)
 
 # check for outliers
